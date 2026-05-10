@@ -61,6 +61,22 @@ const supabaseClient = window.supabase
 const BATCH_SIZE = 20;
 const MY_WORDS_SOURCE = "mine";
 const ALL_WORD_SOURCES = [MY_WORDS_SOURCE, "N5", "N4", "N3", "N2", "N1"];
+const AUTH_REDIRECT_URL = "https://naniue.github.io/-/";
+
+function toChineseAuthError(message) {
+  const raw = String(message || "").toLowerCase();
+  if (!raw) return "操作失败，请稍后再试。";
+  if (raw.includes("invalid login credentials")) return "邮箱或密码不正确。";
+  if (raw.includes("email not confirmed")) return "请先完成邮箱验证，再登录。";
+  if (raw.includes("user already registered") || raw.includes("already registered")) return "这个邮箱已经注册过，请直接登录。";
+  if (raw.includes("password")) return "密码不符合要求，请至少输入 6 位。";
+  if (raw.includes("rate limit") || raw.includes("too many")) return "操作太频繁，请稍后再试。";
+  if (raw.includes("foreign key") || raw.includes("member_profiles_user_id_fkey")) return "会员信息同步中，请刷新页面后重新登录。";
+  if (raw.includes("network") || raw.includes("failed to fetch")) return "网络连接失败，请检查网络后重试。";
+  if (raw.includes("oauth")) return "第三方登录暂时不可用，请稍后再试。";
+  if (/^[\x00-\x7F]+$/.test(String(message || ""))) return "操作失败，请稍后再试。";
+  return String(message);
+}
 
 const uiText = {
   zh: {
@@ -79,7 +95,7 @@ const uiText = {
     currentGuest: "当前未登录（访客模式）。登录后词库存储到账号。",
     currentUser: (user) => `当前已登录：${user}`,
     loginSuccess: (user) => `登录成功：${user}`,
-    registerSuccess: (user) => `验证邮件已发送到 ${user}。请先完成邮箱认证，再返回登录。`,
+    registerSuccess: (user) => `验证邮件已发送到 ${user}。请现在打开邮箱，点击邮件里的验证链接；验证成功后再回到这里登录。`,
     logoutSuccess: "已退出登录，回到访客模式。",
     authMissing: "请输入邮箱和密码。",
     authMissingInvite: "注册需要填写邀请码。",
@@ -88,7 +104,7 @@ const uiText = {
     memberDenied: "此账号还不是会员，请使用邀请码注册会员账号。",
     levelLoaded: (level, count) => `已加载 ${level} 词库，共 ${count} 个单词。`,
     myWordsLoaded: (count) => `已加载我的单词，共 ${count} 个。`,
-    authFailed: (msg) => `操作失败：${msg}`
+    authFailed: (msg) => `操作失败：${toChineseAuthError(msg)}`
   },
   ja: {
     learn: "学習",
@@ -221,7 +237,6 @@ const el = {
   loginBtn: document.querySelector("#loginBtn"),
   registerBtn: document.querySelector("#registerBtn"),
   logoutBtn: document.querySelector("#logoutBtn"),
-  googleLoginBtn: document.querySelector("#googleLoginBtn"),
   authStatus: document.querySelector("#authStatus"),
   profileStats: document.querySelector("#profileStats"),
   usernameInput: document.querySelector("#usernameInput"),
@@ -229,8 +244,7 @@ const el = {
   inviteCodeInput: document.querySelector("#inviteCodeInput"),
   levelSwitcher: document.querySelector("#levelSwitcher"),
   authFormGrid: document.querySelector("#authDialog .form-grid"),
-  authActions: document.querySelector("#authDialog .auth-actions"),
-  socialAuth: document.querySelector("#authDialog .social-auth")
+  authActions: document.querySelector("#authDialog .auth-actions")
 };
 
 function readUsers() {
@@ -356,7 +370,7 @@ async function refreshMembershipStatus() {
   if (!supabaseClient) {
     state.isMember = false;
     state.membershipChecked = true;
-    state.membershipMessage = "Supabase SDK 未加载，无法确认会员状态。";
+    state.membershipMessage = "认证服务暂时无法加载，无法确认会员状态。";
     return;
   }
 
@@ -364,7 +378,7 @@ async function refreshMembershipStatus() {
   state.membershipChecked = true;
   if (error || !data?.is_member) {
     state.isMember = false;
-    state.membershipMessage = data?.message || error?.message || text.memberDenied;
+    state.membershipMessage = data?.message || (error ? toChineseAuthError(error.message) : text.memberDenied);
     return;
   }
 
@@ -643,14 +657,15 @@ function saveWordsForCurrentUser() {
   saveMyWords(state.words);
 }
 
-function updateAuthStatus(msg) {
+function updateAuthStatus(msg, type = "") {
   el.authStatus.textContent = msg;
+  el.authStatus.classList.toggle("success", type === "success");
+  el.authStatus.classList.toggle("error", type === "error");
 }
 
 function updateAuthDialogView() {
   const isLoggedIn = Boolean(state.currentUser);
   if (el.authFormGrid) el.authFormGrid.classList.toggle("hidden", isLoggedIn);
-  if (el.socialAuth) el.socialAuth.classList.toggle("hidden", isLoggedIn);
   if (el.profileStats) el.profileStats.classList.toggle("hidden", !isLoggedIn);
   el.loginBtn.classList.toggle("hidden", isLoggedIn);
   el.registerBtn.classList.toggle("hidden", isLoggedIn);
@@ -745,10 +760,11 @@ function playTone(frequency, startTime, duration, type = "sine", volume = 0.06) 
   }
   const oscillator = audioContext.createOscillator();
   const gain = audioContext.createGain();
+  const boostedVolume = Math.min(volume * 1.8, 0.16);
   oscillator.type = type;
   oscillator.frequency.setValueAtTime(frequency, startTime);
   gain.gain.setValueAtTime(0.0001, startTime);
-  gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.012);
+  gain.gain.exponentialRampToValueAtTime(boostedVolume, startTime + 0.012);
   gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
   oscillator.connect(gain);
   gain.connect(audioContext.destination);
@@ -1691,7 +1707,7 @@ function setupAuth() {
       return;
     }
     if (!supabaseClient) {
-      updateAuthStatus(text.authFailed("Supabase SDK 未加载"));
+      updateAuthStatus(text.authFailed("认证服务暂时无法加载"));
       return;
     }
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -1705,23 +1721,6 @@ function setupAuth() {
     updateAuthStatus(canUseApp()
       ? `${text.currentUser(userEmail)}（会员）`
       : state.membershipMessage);
-  });
-
-  el.googleLoginBtn.addEventListener("click", async () => {
-    const text = t();
-    if (!supabaseClient) {
-      updateAuthStatus(text.authFailed("Supabase SDK 未加载"));
-      return;
-    }
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.href
-      }
-    });
-    if (error) {
-      updateAuthStatus(text.authFailed(error.message));
-    }
   });
 
   el.registerBtn.addEventListener("click", async () => {
@@ -1738,7 +1737,7 @@ function setupAuth() {
       return;
     }
     if (!supabaseClient) {
-      updateAuthStatus(text.authFailed("Supabase SDK 未加载"));
+      updateAuthStatus(text.authFailed("认证服务暂时无法加载"));
       return;
     }
     const { data: inviteData, error: inviteError } = await supabaseClient.rpc("claim_invite_code", {
@@ -1753,7 +1752,7 @@ function setupAuth() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.href,
+        emailRedirectTo: AUTH_REDIRECT_URL,
         data: {
           invite_code: inviteCode
         }
@@ -1769,7 +1768,7 @@ function setupAuth() {
       users[userEmail] = { password: "", words: normalizeWords(DEFAULT_WORDS) };
       writeUsers(users);
     }
-    updateAuthStatus(text.registerSuccess(userEmail));
+    updateAuthStatus(text.registerSuccess(userEmail), "success");
   });
 
   el.logoutBtn.addEventListener("click", async () => {
