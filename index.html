@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nee 在线日语助手</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-spacer"></div>
+    <div class="brand">
+      <img
+        alt="Nee Logo"
+        class="brand-logo-img"
+        src="./Nee.png"
+        onerror="this.parentElement.classList.add('brand-fallback-active')"
+      />
+      <span class="brand-wordmark-text">在线日语助手</span>
+      <div class="brand-text-fallback">
+        <span class="brand-nee">Nee</span>
+        <span class="brand-title-fallback">在线日语助手</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="settingsBtn" class="icon-btn" title="夜间模式切换" aria-label="夜间模式切换">
+        <span class="material-symbols-outlined">dark_mode</span>
+      </button>
+      <button id="profileBtn" class="icon-btn" title="个人中心">
+        <span class="material-symbols-outlined">account_circle</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <div id="levelSwitcher" class="level-switcher" aria-label="JLPT 词库级别">
+      <button type="button" data-level="mine">我的单词</button>
+      <button type="button" data-level="N5">N5</button>
+      <button type="button" data-level="N4">N4</button>
+      <button type="button" data-level="N3">N3</button>
+      <button type="button" data-level="N2">N2</button>
+      <button type="button" data-level="N1">N1</button>
+    </div>
+
+    <section class="notebook">
+      <div class="rings" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="paper">
+        <div id="progressBar" class="progress-dashes" aria-label="学习进度"></div>
+
+        <section id="learnPage" class="content-page"></section>
+        <section id="testPage" class="content-page hidden"></section>
+        <section id="addPage" class="content-page hidden"></section>
+      </div>
+
+      <aside class="tabs">
+        <button class="tab active" data-page="learn">学习</button>
+        <button class="tab" data-page="test">测试</button>
+        <button class="tab" data-page="add">添加</button>
+      </aside>
+    </section>
+
+    <div class="rule-footer" aria-label="拼音对应规律提示">
+      <div>
+        <span class="rule-footer-long">ng / ao / ou / iu → 長音</span>
+        <span class="rule-footer-other">n 结尾 → ん结尾</span>
+      </div>
+      <div class="rule-footer-contact">详情联系微信号naniue</div>
+    </div>
+  </main>
+
+  <dialog id="authDialog" class="modal">
+    <form method="dialog" class="modal-card profile-card">
+      <div class="modal-head">
+        <h3>个人中心</h3>
+        <button class="close-btn" type="button" data-close-dialog="authDialog" aria-label="关闭">✕</button>
+      </div>
+      <p id="authStatus" class="auth-status"></p>
+      <div id="profileStats" class="profile-stats hidden"></div>
+      <div class="form-grid">
+        <label>
+          邮箱
+          <input id="usernameInput" type="email" autocomplete="username" required />
+        </label>
+        <label>
+          密码
+          <input id="passwordInput" type="password" autocomplete="current-password" required />
+        </label>
+        <label>
+          邀请码（注册时必填）
+          <input id="inviteCodeInput" type="text" autocomplete="one-time-code" placeholder="请输入邀请码" />
+        </label>
+      </div>
+      <div class="auth-actions">
+        <button id="registerBtn" value="default" type="button">注册</button>
+        <button id="loginBtn" value="default" type="button">登录</button>
+        <button id="logoutBtn" value="default" type="button" class="danger">退出登录</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="./jlpt-vocab.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
