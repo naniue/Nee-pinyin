@@ -61,7 +61,7 @@ const supabaseClient = window.supabase
 const BATCH_SIZE = 20;
 const MY_WORDS_SOURCE = "mine";
 const ALL_WORD_SOURCES = [MY_WORDS_SOURCE, "N5", "N4", "N3", "N2", "N1"];
-const AUTH_REDIRECT_URL = "http://naniue.com/";
+const AUTH_REDIRECT_URL = "https://naniue.github.io/-/";
 
 function toChineseAuthError(message) {
   const raw = String(message || "").toLowerCase();
