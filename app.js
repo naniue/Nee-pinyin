@@ -86,7 +86,7 @@ const uiText = {
     authTitle: "个人中心",
     email: "邮箱",
     password: "密码",
-    inviteCode: "邀请码（注册时必填）",
+    inviteCode: "邀请码（注册时必填，联系微信号：naniue获取）",
     login: "登录",
     register: "注册",
     logout: "退出登录",
